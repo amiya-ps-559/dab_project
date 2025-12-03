@@ -1,0 +1,21 @@
+resources:
+  pipelines:
+    pipeline_dlt_pipeline:
+      name: dlt_pipeline
+      configuration:
+        catalog: "${var.catalog}"
+      libraries:
+        - notebook:
+            path: ..\etl\dlt\bronze\01_bronze.ipynb
+        - notebook:
+            path: ..\etl\dlt\silver\02_silver.ipynb
+        - notebook:
+            path: ..\etl\dlt\gold\03_gold_summary.ipynb
+        - notebook:
+            path: ..\etl\dlt\gold\03_gold_daily_station_performance.ipynb
+      schema: default
+      development: "${var.dev_flag}"
+      photon: true
+      catalog: "${var.catalog}"
+      serverless: true
+      # root_path: /Workspace/Users/amirout@publicisgroupe.net

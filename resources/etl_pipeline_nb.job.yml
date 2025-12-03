@@ -1,0 +1,61 @@
+resources:
+  jobs:
+    etl_pipeline_nb:
+      name: etl_pipeline_nb
+      tasks:
+        - task_key: 00_whl_upload
+          python_wheel_task:
+            package_name: dab_project
+            entry_point: main
+          job_cluster_key: D4s_v3_sn
+          libraries:
+            - whl: ..\dist\*.whl
+        - task_key: 01_bronze
+          depends_on:
+            - task_key: 00_whl_upload
+          notebook_task:
+            notebook_path: ..\etl\notebooks\bronze\01_bronze.ipynb
+            base_parameters:
+              pipeline_id: "{{job.id}}"
+              run_id: "{{job.run_id}}"
+              task_id: "{{task.run_id}}"
+              processed_timestamp: "{{job.start_time.iso_datetime}}"
+              catalog: "${var.catalog}"
+            source: WORKSPACE
+          job_cluster_key: D4s_v3_sn
+        - task_key: 02_silver
+          depends_on:
+            - task_key: 01_bronze
+          notebook_task:
+            notebook_path: ..\etl\notebooks\silver\02_silver.ipynb
+            base_parameters:
+              pipeline_id: "{{job.id}}"
+              run_id: "{{job.run_id}}"
+              task_id: "{{task.run_id}}"
+              processed_timestamp: "{{job.start_time.iso_datetime}}"
+              catalog: "${var.catalog}"
+            source: WORKSPACE
+          job_cluster_key: D4s_v3_sn
+        - task_key: 03_gold_summary
+          depends_on:
+            - task_key: 02_silver
+          notebook_task:
+            notebook_path: ..\etl\notebooks\gold\03_gold_summary.ipynb
+            source: WORKSPACE
+            base_parameters:
+              catalog: "${var.catalog}"
+          job_cluster_key: D4s_v3_sn
+        - task_key: 03_gold_daily_station_performance
+          depends_on:
+            - task_key: 02_silver
+          notebook_task:
+            notebook_path: ..\etl\notebooks\gold\03_gold_daily_station_performance.ipynb
+            source: WORKSPACE
+            base_parameters:
+              catalog: "${var.catalog}"
+          job_cluster_key: D4s_v3_sn
+      job_clusters:
+        - job_cluster_key: D4s_v3_sn
+          new_cluster: "${var.D4s_v3_sn}"
+      queue:
+        enabled: true
