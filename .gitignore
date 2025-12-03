@@ -4,6 +4,7 @@ dist/
 __pycache__/
 *.egg-info
 .venv*/
+.slingshot*/
 scratch/**
 !scratch/README.md
 **/explorations/**
