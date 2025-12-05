@@ -39,3 +39,7 @@ jobs:
         with:
           name: coverage-html
           path: htmlcov
+
+      - name: "Validate bundle"
+        run: databricks bundle validate
+        working-directory: .
