@@ -50,6 +50,8 @@ jobs:
           name: coverage-html
           path: htmlcov
 
-      - name: "Validate bundle"
-        run: databricks bundle validate
-        working-directory: .
+      - name: Validate Dev Env
+        run: |
+          databricks bundle Validate \
+            --target dev \
+            --profile DEFAULT
