@@ -6,13 +6,13 @@ resources:
         catalog: "${var.catalog}"
       libraries:
         - notebook:
-            path: ..\etl\dlt\bronze\01_bronze.ipynb
+            path: ../etl/dlt/bronze/01_bronze.ipynb
         - notebook:
-            path: ..\etl\dlt\silver\02_silver.ipynb
+            path: ../etl/dlt/silver/02_silver.ipynb
         - notebook:
-            path: ..\etl\dlt\gold\03_gold_summary.ipynb
+            path: ../etl/dlt/gold/03_gold_summary.ipynb
         - notebook:
-            path: ..\etl\dlt\gold\03_gold_daily_station_performance.ipynb
+            path: ../etl/dlt/gold/03_gold_daily_station_performance.ipynb
       schema: default
       development: "${var.dev_flag}"
       photon: true
