@@ -40,8 +40,10 @@ targets:
     presets:
       name_prefix: '[testing] '
     permissions:
-      - user_name: amirout@publicisgroupe.net
+      - service_principal_name: 86df9b95-c666-4e15-bd5d-f133f6bfb375
         level: CAN_MANAGE
+    run_as:
+      service_principal_name: 86df9b95-c666-4e15-bd5d-f133f6bfb375
 
   prod:
     mode: production
@@ -57,5 +59,7 @@ targets:
     presets:
       name_prefix: '[prod] '
     permissions:
-      - user_name: amirout@publicisgroupe.net
+      - service_principal_name: b9994fd5-21c6-45e1-9be2-bb77f42ec7ca
         level: CAN_MANAGE
+    run_as:
+      service_principal_name: b9994fd5-21c6-45e1-9be2-bb77f42ec7ca
