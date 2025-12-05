@@ -9,12 +9,12 @@ resources:
             entry_point: main
           job_cluster_key: D4s_v3_sn
           libraries:
-            - whl: ..\dist\*.whl
+            - whl: ../dist/*.whl
         - task_key: 01_bronze
           depends_on:
             - task_key: 00_whl_upload
           spark_python_task:
-            python_file: ..\etl\scripts\bronze\01_bronze.py
+            python_file: ../etl/scripts/bronze/01_bronze.py
             parameters:
               - "{{job.id}}"
               - "{{job.run_id}}"
@@ -26,7 +26,7 @@ resources:
           depends_on:
             - task_key: 01_bronze
           spark_python_task:
-            python_file: ..\etl\scripts\silver\02_silver.py
+            python_file: ../etl/scripts/silver/02_silver.py
             parameters:
               - "{{job.id}}"
               - "{{job.run_id}}"
@@ -38,7 +38,7 @@ resources:
           depends_on:
             - task_key: 02_silver
           spark_python_task:
-            python_file: ..\etl\scripts\gold\03_gold_summary.py
+            python_file: ../etl/scripts/gold/03_gold_summary.py
             parameters:
               - "${var.catalog}"
           job_cluster_key: D4s_v3_sn
@@ -46,7 +46,7 @@ resources:
           depends_on:
             - task_key: 02_silver
           spark_python_task:
-            python_file: ..\etl\scripts\gold\03_gold_daily_station_performance.py
+            python_file: ../etl/scripts/gold/03_gold_daily_station_performance.py
             parameters:
               - "${var.catalog}"
           job_cluster_key: D4s_v3_sn
