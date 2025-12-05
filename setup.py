@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="dab_project",
-    version="0.0.3",
+    version="0.0.4",
     description="This contains the code in the ./src directory of the project",
     author="Amiya Rout",
     packages=find_packages(where="./src"),
