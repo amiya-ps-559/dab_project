@@ -42,7 +42,8 @@ jobs:
           pytest \
             --disable-warnings \
             --cov=./src \
-            --cov-report=html
+            --cov-report=html \
+            --cov-fail-under=80
 
       - name: Upload coverage HTML report
         uses: actions/upload-artifact@v4
