@@ -9,12 +9,12 @@ resources:
             entry_point: main
           job_cluster_key: D4s_v3_sn
           libraries:
-            - whl: ../dist/*.whl
+            - whl: ../../dist/*.whl
         - task_key: 01_bronze
           depends_on:
             - task_key: 00_whl_upload
           notebook_task:
-            notebook_path: ../etl/notebooks/bronze/01_bronze.ipynb
+            notebook_path: ../../etl/notebooks/bronze/01_bronze.ipynb
             base_parameters:
               pipeline_id: "{{job.id}}"
               run_id: "{{job.run_id}}"
@@ -27,7 +27,7 @@ resources:
           depends_on:
             - task_key: 01_bronze
           notebook_task:
-            notebook_path: ../etl/notebooks/silver/02_silver.ipynb
+            notebook_path: ../../etl/notebooks/silver/02_silver.ipynb
             base_parameters:
               pipeline_id: "{{job.id}}"
               run_id: "{{job.run_id}}"
@@ -40,7 +40,7 @@ resources:
           depends_on:
             - task_key: 02_silver
           notebook_task:
-            notebook_path: ../etl/notebooks/gold/03_gold_summary.ipynb
+            notebook_path: ../../etl/notebooks/gold/03_gold_summary.ipynb
             source: WORKSPACE
             base_parameters:
               catalog: "${var.catalog}"
@@ -49,7 +49,7 @@ resources:
           depends_on:
             - task_key: 02_silver
           notebook_task:
-            notebook_path: ../etl/notebooks/gold/03_gold_daily_station_performance.ipynb
+            notebook_path: ../../etl/notebooks/gold/03_gold_daily_station_performance.ipynb
             source: WORKSPACE
             base_parameters:
               catalog: "${var.catalog}"

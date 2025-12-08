@@ -1,0 +1,7 @@
+variables:
+  catalog:
+    default: "dab-mvp-test"
+  dev_flag:
+    default: false
+  root_host:
+    default: "adb-1988747847570847.7.azuredatabricks.net"
