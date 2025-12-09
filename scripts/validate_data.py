@@ -1,118 +1,158 @@
 import argparse
-import yaml
+import os
 import sys
+import yaml
 import logging
+import time
 
-# Optional imports
-try:
-    from pyspark.sql import SparkSession
-except:
-    SparkSession = None
-
-try:
-    from databricks import WorkspaceClient
-except:
-    WorkspaceClient = None
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.errors import NotFound
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("validation")
 
 
+# --------------------------------------------------------
+# Load YAML Config
+# --------------------------------------------------------
 def load_config(path):
-    with open(path, "r") as f:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+    full_path = os.path.join(project_root, path)
+
+    if not os.path.exists(full_path):
+        raise FileNotFoundError(f"Config file not found: {full_path}")
+
+    with open(full_path, "r") as f:
         return yaml.safe_load(f)
 
 
-def get_spark():
-    if SparkSession is None:
-        logger.error("PySpark not available. Run inside Databricks or install pyspark.")
-        sys.exit(1)
-    return SparkSession.builder.getOrCreate()
+def q(x: str) -> str:
+    """Quote identifiers for UC SQL."""
+    return f"`{x}`"
 
 
-def validate_tables(spark, tables):
+# --------------------------------------------------------
+# Validate Table Exists
+# --------------------------------------------------------
+def validate_table_exists(client, catalog, schema, table):
+    fqdn = f"{catalog}.{schema}.{table}"
+    try:
+        client.tables.get(fqdn)
+        return True
+    except NotFound:
+        return False
+    except Exception as e:
+        logger.error(f"Error checking table existence via API: {fqdn} ({e})")
+        return False
+
+
+# --------------------------------------------------------
+# Validate Row Count
+# --------------------------------------------------------
+def validate_row_count(client, warehouse_id, catalog, schema, table, min_rows):
+    query = f"SELECT COUNT(*) AS c FROM {q(catalog)}.{q(schema)}.{q(table)}"
+
+    exec_res = client.statement_execution.execute(
+        warehouse_id=warehouse_id,
+        catalog=catalog,
+        schema=schema,
+        statement=query,
+    )
+
+    # Wait for execution to finish
+    while exec_res.status == "PENDING" or exec_res.status == "RUNNING":
+        time.sleep(1)
+        exec_res = client.statement_execution.get_statement(exec_res.statement_id)
+
+    # Get results
+    result = client.statement_execution.get_statement_result(exec_res.statement_id)
+    count = result.manifest.total_row_count
+
+    return count >= min_rows
+
+
+# --------------------------------------------------------
+# Validate Tables Section
+# --------------------------------------------------------
+def validate_tables(client, tables, warehouse_id):
     ok = True
+    catalog = "dab-mvp-dev"  # DEV ONLY as you requested
+
     for t in tables:
-        table_name = t["name"]
+        raw = t["name"]  # schema.table
         min_rows = t.get("min_rows", 0)
 
-        logger.info(f"Checking table: {table_name}")
+        schema, table = raw.split(".", 1)
+        fqdn = f"{catalog}.{schema}.{table}"
 
-        # Check existence
-        try:
-            if not spark.catalog.tableExists(table_name):
-                logger.error(f"❌ Table does not exist: {table_name}")
-                ok = False
-                continue
-        except Exception as e:
-            logger.error(f"❌ Error checking table existence: {table_name} ({e})")
+        logger.info(f"Checking table: {fqdn}")
+
+        # Existence
+        if not validate_table_exists(client, catalog, schema, table):
+            logger.error(f"❌ Table does NOT exist: {fqdn}")
             ok = False
             continue
 
-        # Check min rows
+        # Row count
         try:
-            df = spark.table(table_name)
-            count = df.count()
-            if count < min_rows:
-                logger.error(f"❌ Row count check failed: {table_name} (count={count}, expected>={min_rows})")
+            if not validate_row_count(client, warehouse_id, catalog, schema, table, min_rows):
+                logger.error(f"❌ Row count too low for: {fqdn}")
                 ok = False
         except Exception as e:
-            logger.error(f"❌ Error reading table {table_name}: {e}")
+            logger.error(f"❌ Error in row count check for {fqdn}: {e}")
             ok = False
 
     return ok
 
 
-def validate_jobs(jobs):
-    if WorkspaceClient is None:
-        logger.warning("databricks-sdk not installed. Skipping job validation.")
-        return True
-
-    client = WorkspaceClient()
-    jobs_list = list(client.jobs.list())
-
+# --------------------------------------------------------
+# Validate Jobs Section
+# --------------------------------------------------------
+def validate_jobs(client, jobs):
     ok = True
-    for job in jobs:
-        name = job["name"]
-        must_be_active = job.get("must_be_active", False)
+    all_jobs = list(client.jobs.list())
 
-        logger.info(f"Checking job: {name}")
+    for j in jobs:
+        expected_name = j["name"]
+        logger.info(f"Checking job: {expected_name}")
 
-        found_job = None
-        for j in jobs_list:
-            j_name = getattr(j.settings, "name", None)
-            if j_name == name:
-                found_job = j
-                break
+        found = any(getattr(job.settings, "name", None) == expected_name for job in all_jobs)
 
-        if not found_job:
-            logger.error(f"❌ Job not found: {name}")
+        if not found:
+            logger.error(f"❌ Job not found: {expected_name}")
             ok = False
-            continue
-
-        # Activity check (simple existence check is enough for dev)
-        if must_be_active:
-            logger.info(f"Job exists and is considered active: {name}")
 
     return ok
 
 
+# --------------------------------------------------------
+# MAIN ENTRYPOINT
+# --------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="validation_config.yaml")
+    parser.add_argument("--config", default="validation_config.yml")
     args = parser.parse_args()
 
     cfg = load_config(args.config)
-    spark = get_spark()
 
-    tables_ok = validate_tables(spark, cfg.get("tables", []))
-    jobs_ok = validate_jobs(cfg.get("jobs", []))
+    # Databricks client
+    client = WorkspaceClient()
+
+    # Warehouse ID required for SQL API
+    warehouse_id = os.getenv("WAREHOUSE_ID")
+    if not warehouse_id:
+        logger.error("❌ WAREHOUSE_ID environment variable is required.")
+        sys.exit(1)
+
+    tables_ok = validate_tables(client, cfg.get("tables", []), warehouse_id)
+    jobs_ok = validate_jobs(client, cfg.get("jobs", []))
 
     if tables_ok and jobs_ok:
-        logger.info("✅ All DEV validations passed.")
+        logger.info("✅ All DEV validations passed!")
         sys.exit(0)
     else:
-        logger.error("❌ DEV validations FAILED.")
+        logger.error("❌ Validation FAILED.")
         sys.exit(1)
 
 

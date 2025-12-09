@@ -1,14 +1,14 @@
 tables:
-  - name: dab-mvp-dev.bronze.jc_citibike
+  - name: bronze.jc_citibike
     min_rows: 1
 
-  - name: dab-mvp-dev.silver.jc_citibike
+  - name: silver.jc_citibike
     min_rows: 1
 
-  - name: dab-mvp-dev.gold.daily_ride_summary
+  - name: gold.daily_ride_summary
     min_rows: 1
 
-  - name: dab-mvp-dev.gold.daily_station_performance
+  - name: gold.daily_station_performance
     min_rows: 1
 
 jobs:

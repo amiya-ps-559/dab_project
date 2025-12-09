@@ -26,6 +26,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dbc.txt
+          pip install databricks-sdk
+
+      - name: Install Databricks CLI
+        run: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
 
       - name: Configure Databricks
         run: |
@@ -36,10 +40,9 @@ jobs:
           token = ${{ secrets.DATABRICKS_TOKEN }}
           EOF
 
-      - name: Install Databricks CLI
-        run: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
-
-      - name: Run Databricks environment validation
+      - name: Run Databricks validation script
+        env:
+          WAREHOUSE_ID: ${{ secrets.WAREHOUSE_ID }}
         run: |
           databricks bundle run validate --target dev
 
