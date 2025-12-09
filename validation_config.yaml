@@ -12,8 +12,8 @@ tables:
     min_rows: 1
 
 jobs:
-  - name: "[dev amirout] dlt_pipeline"
-    must_be_active: true
+  # - name: "[dev amirout] dlt_pipeline"
+  #   must_be_active: true
 
   - name: "[dev amirout] etl_pipeline_nb"
     must_be_active: true
