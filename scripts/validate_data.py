@@ -13,7 +13,7 @@ logger = logging.getLogger("validation")
 
 
 # --------------------------------------------------------
-# Load YAML Config
+# Load YAML config safely
 # --------------------------------------------------------
 def load_config(path):
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -28,12 +28,12 @@ def load_config(path):
 
 
 def q(x: str) -> str:
-    """Quote identifiers for UC SQL."""
+    """Quote identifiers for SQL."""
     return f"`{x}`"
 
 
 # --------------------------------------------------------
-# Validate Table Exists
+# TABLE EXISTENCE CHECK (Unity Catalog) via API
 # --------------------------------------------------------
 def validate_table_exists(client, catalog, schema, table):
     fqdn = f"{catalog}.{schema}.{table}"
@@ -48,36 +48,39 @@ def validate_table_exists(client, catalog, schema, table):
 
 
 # --------------------------------------------------------
-# Validate Row Count
+# ROW COUNT CHECK using SQL Warehouse
 # --------------------------------------------------------
 def validate_row_count(client, warehouse_id, catalog, schema, table, min_rows):
     query = f"SELECT COUNT(*) AS c FROM {q(catalog)}.{q(schema)}.{q(table)}"
 
-    exec_res = client.statement_execution.execute(
+    # Submit SQL query
+    exec_res = client.statement_execution.execute_statement(
         warehouse_id=warehouse_id,
         catalog=catalog,
         schema=schema,
         statement=query,
     )
 
-    # Wait for execution to finish
-    while exec_res.status == "PENDING" or exec_res.status == "RUNNING":
+    # Poll until execution completes
+    status = client.statement_execution.get_statement(exec_res.statement_id)
+    while status.status in ("PENDING", "RUNNING"):
         time.sleep(1)
-        exec_res = client.statement_execution.get_statement(exec_res.statement_id)
+        status = client.statement_execution.get_statement(exec_res.statement_id)
 
-    # Get results
+    # Fetch results
     result = client.statement_execution.get_statement_result(exec_res.statement_id)
-    count = result.manifest.total_row_count
 
+    # Extract COUNT(*) from data_array row 0 col 0
+    count = result.result.data_array[0][0]
     return count >= min_rows
 
 
 # --------------------------------------------------------
-# Validate Tables Section
+# VALIDATE ALL TABLES
 # --------------------------------------------------------
 def validate_tables(client, tables, warehouse_id):
     ok = True
-    catalog = "dab-mvp-dev"  # DEV ONLY as you requested
+    catalog = "dab-mvp-dev"  # DEV environment only
 
     for t in tables:
         raw = t["name"]  # schema.table
@@ -88,36 +91,36 @@ def validate_tables(client, tables, warehouse_id):
 
         logger.info(f"Checking table: {fqdn}")
 
-        # Existence
+        # 1. Existence check
         if not validate_table_exists(client, catalog, schema, table):
             logger.error(f"❌ Table does NOT exist: {fqdn}")
             ok = False
             continue
 
-        # Row count
+        # 2. Row count check
         try:
             if not validate_row_count(client, warehouse_id, catalog, schema, table, min_rows):
                 logger.error(f"❌ Row count too low for: {fqdn}")
                 ok = False
         except Exception as e:
-            logger.error(f"❌ Error in row count check for {fqdn}: {e}")
+            logger.error(f"❌ Error during row count validation for {fqdn}: {e}")
             ok = False
 
     return ok
 
 
 # --------------------------------------------------------
-# Validate Jobs Section
+# JOB VALIDATION
 # --------------------------------------------------------
 def validate_jobs(client, jobs):
     ok = True
     all_jobs = list(client.jobs.list())
 
-    for j in jobs:
-        expected_name = j["name"]
+    for entry in jobs:
+        expected_name = entry["name"]
         logger.info(f"Checking job: {expected_name}")
 
-        found = any(getattr(job.settings, "name", None) == expected_name for job in all_jobs)
+        found = any(getattr(j.settings, "name", None) == expected_name for j in all_jobs)
 
         if not found:
             logger.error(f"❌ Job not found: {expected_name}")
@@ -127,7 +130,7 @@ def validate_jobs(client, jobs):
 
 
 # --------------------------------------------------------
-# MAIN ENTRYPOINT
+# MAIN ENTRY
 # --------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser()
@@ -136,10 +139,8 @@ def main():
 
     cfg = load_config(args.config)
 
-    # Databricks client
     client = WorkspaceClient()
 
-    # Warehouse ID required for SQL API
     warehouse_id = os.getenv("WAREHOUSE_ID")
     if not warehouse_id:
         logger.error("❌ WAREHOUSE_ID environment variable is required.")
