@@ -12,9 +12,6 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("validation")
 
 
-# --------------------------------------------------------
-# Load YAML config safely
-# --------------------------------------------------------
 def load_config(path):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
@@ -28,13 +25,9 @@ def load_config(path):
 
 
 def q(x: str) -> str:
-    """Quote identifiers for SQL."""
     return f"`{x}`"
 
 
-# --------------------------------------------------------
-# TABLE EXISTENCE CHECK (Unity Catalog) via API
-# --------------------------------------------------------
 def validate_table_exists(client, catalog, schema, table):
     fqdn = f"{catalog}.{schema}.{table}"
     try:
@@ -43,17 +36,13 @@ def validate_table_exists(client, catalog, schema, table):
     except NotFound:
         return False
     except Exception as e:
-        logger.error(f"Error checking table existence via API: {fqdn} ({e})")
+        logger.error(f"Error checking table existence: {fqdn} ({e})")
         return False
 
 
-# --------------------------------------------------------
-# ROW COUNT CHECK using SQL Warehouse
-# --------------------------------------------------------
 def validate_row_count(client, warehouse_id, catalog, schema, table, min_rows):
     query = f"SELECT COUNT(*) AS c FROM {q(catalog)}.{q(schema)}.{q(table)}"
 
-    # Submit SQL query
     exec_res = client.statement_execution.execute_statement(
         warehouse_id=warehouse_id,
         catalog=catalog,
@@ -61,43 +50,40 @@ def validate_row_count(client, warehouse_id, catalog, schema, table, min_rows):
         statement=query,
     )
 
-    # Poll until execution completes
-    status = client.statement_execution.get_statement(exec_res.statement_id)
+    statement_id = exec_res.statement_id
+
+    # Poll until the statement finishes
+    status = client.statement_execution.get_statement(statement_id)
     while status.status in ("PENDING", "RUNNING"):
         time.sleep(1)
-        status = client.statement_execution.get_statement(exec_res.statement_id)
+        status = client.statement_execution.get_statement(statement_id)
 
-    # Fetch results
-    result = client.statement_execution.get_statement_result(exec_res.statement_id)
+    # Fetch first result chunk
+    chunk = client.statement_execution.get_result_chunk_n(statement_id, 0)
 
-    # Extract COUNT(*) from data_array row 0 col 0
-    count = result.result.data_array[0][0]
+    # COUNT(*) = row 0 col 0
+    count = chunk.data_array[0][0]
+
     return count >= min_rows
 
 
-# --------------------------------------------------------
-# VALIDATE ALL TABLES
-# --------------------------------------------------------
 def validate_tables(client, tables, warehouse_id):
     ok = True
-    catalog = "dab-mvp-dev"  # DEV environment only
+    catalog = "dab-mvp-dev"  # Hard-coded for DEV
 
     for t in tables:
-        raw = t["name"]  # schema.table
+        raw = t["name"]
         min_rows = t.get("min_rows", 0)
-
         schema, table = raw.split(".", 1)
-        fqdn = f"{catalog}.{schema}.{table}"
 
+        fqdn = f"{catalog}.{schema}.{table}"
         logger.info(f"Checking table: {fqdn}")
 
-        # 1. Existence check
         if not validate_table_exists(client, catalog, schema, table):
             logger.error(f"❌ Table does NOT exist: {fqdn}")
             ok = False
             continue
 
-        # 2. Row count check
         try:
             if not validate_row_count(client, warehouse_id, catalog, schema, table, min_rows):
                 logger.error(f"❌ Row count too low for: {fqdn}")
@@ -109,29 +95,23 @@ def validate_tables(client, tables, warehouse_id):
     return ok
 
 
-# --------------------------------------------------------
-# JOB VALIDATION
-# --------------------------------------------------------
 def validate_jobs(client, jobs):
     ok = True
     all_jobs = list(client.jobs.list())
 
-    for entry in jobs:
-        expected_name = entry["name"]
-        logger.info(f"Checking job: {expected_name}")
+    for j in jobs:
+        expected = j["name"]
+        logger.info(f"Checking job: {expected}")
 
-        found = any(getattr(j.settings, "name", None) == expected_name for j in all_jobs)
+        found = any(getattr(job.settings, "name", None) == expected for job in all_jobs)
 
         if not found:
-            logger.error(f"❌ Job not found: {expected_name}")
+            logger.error(f"❌ Job not found: {expected}")
             ok = False
 
     return ok
 
 
-# --------------------------------------------------------
-# MAIN ENTRY
-# --------------------------------------------------------
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="validation_config.yml")
