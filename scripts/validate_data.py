@@ -40,25 +40,31 @@ def run_sql(host, token, warehouse_id, catalog, schema, table):
 
     statement_id = r.json()["statement_id"]
 
-    # Poll until complete
+    # Poll
     status_url = f"{url}/{statement_id}"
     while True:
         s = requests.get(status_url, headers=headers).json()
         state = s["status"]["state"]
         if state in ("PENDING", "RUNNING"):
             time.sleep(1)
-            continue
-        if state == "FAILED":
+        elif state == "FAILED":
             raise RuntimeError(f"SQL execution failed: {s}")
-        break
+        else:
+            break
 
-    # Retrieve final result
+    # Get result
     result_url = f"{status_url}/result"
     res = requests.get(result_url, headers=headers).json()
 
-    # Extract COUNT(*) from result set
-    count = res["results"]["data"][0][0]
-    return count
+    # FIX: Handle new API format (2024–2025)
+    if "result" in res and "data_array" in res["result"]:
+        return res["result"]["data_array"][0][0]
+
+    # FALLBACK: Handle old API format (pre-2024)
+    if "results" in res and "data" in res["results"]:
+        return res["results"]["data"][0][0]
+
+    raise RuntimeError(f"Unknown SQL result format: {res}")
 
 
 # ------------------------------------------
