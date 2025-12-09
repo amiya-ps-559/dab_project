@@ -36,6 +36,10 @@ jobs:
           token = ${{ secrets.DATABRICKS_TOKEN }}
           EOF
 
+      - name: Run Databricks environment validation
+        run: |
+          databricks bundle run validate --target dev
+
       - name: Run pytest & generate HTML report
         run: |
           pytest \
