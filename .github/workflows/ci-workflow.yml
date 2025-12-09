@@ -36,6 +36,9 @@ jobs:
           token = ${{ secrets.DATABRICKS_TOKEN }}
           EOF
 
+      - name: Install Databricks CLI
+        run: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+
       - name: Run Databricks environment validation
         run: |
           databricks bundle run validate --target dev
