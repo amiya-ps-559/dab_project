@@ -1,7 +1,102 @@
-# dab_project
-Welcome to the repository for the Udemy course `CI/CD with Databricks Asset Bundles`. This repository serves as a supplementary resource, specifically providing project files used in the course.
+# Project README
 
-You will also need to update the `databricks.yml` configuration file with your Workspace URLs and Service Principal details.
+## 📌 Introduction
+
+This project demonstrates a complete **end-to-end Data Engineering workflow on Azure Databricks**, covering development, testing, validation, and automated CI/CD deployments using **Databricks Asset Bundles (DAB)** and **GitHub Actions**.
+
+It includes:
+- Multi-environment setup (Dev, Test, Prod)
+- Notebook & Python script orchestration
+- Delta Live Tables (DLT)
+- Python wheel packaging
+- Automated validation framework
+- Unit testing & coverage enforcement
+- CI/CD-driven deployments to Test and Prod
+
+This serves as a reference architecture for scalable and production-ready Databricks projects.
+
+---
+
+## ✅ What Are The Features Done So Far
+
+---
+
+## 🏗️ Environment & Setup
+
+1. Created **three Azure Databricks workspaces** (dev, test, prod)
+2. Configured **VS Code** for Databricks development
+3. Installed and configured **Databricks CLI**
+4. Set up **Databricks Connect** for IDE-driven local execution
+
+---
+
+## 📒 Notebook Tasks and Variables with DAB
+
+1. Configured, deployed, and executed **ETL jobs** using DAB
+2. Implemented **regular variables with manual override**
+3. Added **regular variables with target override**
+4. Worked with **complex variables** for advanced configurations
+
+---
+
+## 🐍 Python Script Tasks with DAB
+
+1. Implemented Python script tasks with **parameter handling** through DAB
+
+---
+
+## 🔄 Delta Live Table (DLT) Pipelines with DAB
+
+1. Developed **DLT pipeline source notebooks**
+2. Configured and deployed **DLT pipelines** using DAB
+
+---
+
+## 📦 Working with Python Wheel
+
+1. Created a **Python wheel (.whl)** package
+2. Installed wheel packages on Databricks clusters/jobs
+3. Added **Python Wheel Task** for production workflows
+
+---
+
+## 🧪 Modularized Validation Script
+
+### Implemented `validation_config.yaml` with:
+
+1. **Table existence check**
+2. **Row-count check**
+3. **Job existence check**
+
+This supports reusable validation logic for CI and deployments.
+
+---
+
+## 🧑‍💻 Local Development and Unit Testing
+
+1. Added **PyTest** for unit and integration tests
+2. Enabled running tests via **CI** and/or **Databricks Connect**
+3. Generated **coverage reports** to maintain quality
+4. Configured CI to **fail pipeline if coverage < 80%**
+
+---
+
+## 🚀 End-to-End CI/CD Workflows with DAB & GitHub
+
+1. Onboarded the project to **Git**
+2. Adopted **branch-based workflows**
+3. Implemented **Databricks Service Principal Setup** for Test & Prod deployments
+4. Integrated **GitHub Actions** to automate:
+   - Build
+   - Test
+   - Staging deployment (with approval)
+   - Production rollout
+
+---
+
+## 🏗️ High-Level Architecture
+
+![High-Level Architecture](./High-level-arch.png)
 
 You'll also want to set up local Python environments for Databricks Connect and local PySpark development. Follow the instructions for your platform below.
 
@@ -121,6 +216,29 @@ You'll also want to set up local Python environments for Databricks Connect and 
    https://docs.databricks.com/dev-tools/vscode-ext.html.
 
 7. For documentation on the Databricks asset bundles format used
-   for this project, and for CI/CD configuration, see
-   https://docs.databricks.com/dev-tools/bundles/index.html.
+   for this project, and for CI/CD configuration, see https://docs.databricks.com/dev-tools/bundles/index.html.
+
+
+
+
+   
+
+## Getting started
+
+1. Initialize a new project using the template:
+
+    ```bash
+    databricks bundle init https://github.com/amiya-ps-559/dab_project.git
+    ```
+
+    When initializing your project, you'll be prompted to answer several questions. These configurations will be used to customize your project:
+
+    | Parameter | Description | Example |
+    |-----------|-------------|---------------------|
+    | `project_name` | Name of the project (usually the same as the repository name) | `dab-project` |
+    | `author` | Name of the author | `Amiya Rout` |
+    | `email` | Email address of the author | `amiya.rout@publicissapient.com` |
+    | `project_description` | Brief description of the project | `This project is generated using our own Asset Bundle Templates.` |
+    
+You will also need to update the `databricks.yml` configuration file with your Workspace URLs and Service Principal details.
 
