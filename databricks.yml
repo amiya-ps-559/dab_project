@@ -14,6 +14,12 @@ variables:
     default: "dab-mvp-dev"
   dev_flag:
     default: true
+  job_prefix:
+    default: "[dev amirout] "
+
+scripts:
+  validate:
+    content: python3 scripts/validate_data.py --config validation_config.yaml
 
 targets:
   dev:
@@ -33,6 +39,8 @@ targets:
         default: "dab-mvp-test"
       dev_flag:
         default: false
+      job_prefix:
+        default: "[testing] "
     workspace:
       host: https://adb-1988747847570847.7.azuredatabricks.net
       # We explicitly deploy to /Workspace/Users/amirout@publicisgroupe.net to make sure we only have a single copy.
@@ -52,6 +60,8 @@ targets:
         default: "dab-mvp-prod"
       dev_flag:
         default: false
+      job_prefix:
+        default: "[prod] "
     workspace:
       host: https://adb-2323748107443915.15.azuredatabricks.net
       # We explicitly deploy to /Workspace/Users/amirout@publicisgroupe.net to make sure we only have a single copy.
