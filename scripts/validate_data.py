@@ -26,45 +26,52 @@ def load_config(path):
 # SQL execution via REST API
 # ------------------------------------------
 def run_sql(host, token, warehouse_id, catalog, schema, table):
-    url = f"{host}/api/2.0/sql/statements"
+    base_url = f"{host}/api/2.0/sql/statements"
     headers = {"Authorization": f"Bearer {token}"}
 
     query = f"SELECT COUNT(*) AS c FROM `{catalog}`.`{schema}`.`{table}`"
 
     payload = {"statement": query, "warehouse_id": warehouse_id, "catalog": catalog, "schema": schema}
 
-    # Submit SQL
-    r = requests.post(url, json=payload, headers=headers)
+    # Submit SQL statement
+    r = requests.post(base_url, json=payload, headers=headers)
     if r.status_code != 200:
         raise RuntimeError(f"SQL submit failed: {r.text}")
 
     statement_id = r.json()["statement_id"]
+    status_url = f"{base_url}/{statement_id}"
 
-    # Poll
-    status_url = f"{url}/{statement_id}"
+    # Poll until DONE
     while True:
         s = requests.get(status_url, headers=headers).json()
         state = s["status"]["state"]
+
         if state in ("PENDING", "RUNNING"):
             time.sleep(1)
-        elif state == "FAILED":
-            raise RuntimeError(f"SQL execution failed: {s}")
-        else:
-            break
+            continue
 
-    # Get result
-    result_url = f"{status_url}/result"
-    res = requests.get(result_url, headers=headers).json()
+        if state == "FAILED":
+            raise RuntimeError(f"SQL failed: {s}")
 
-    # FIX: Handle new API format (2024–2025)
-    if "result" in res and "data_array" in res["result"]:
-        return res["result"]["data_array"][0][0]
+        # SUCCEEDED → check where result is located
+        break
 
-    # FALLBACK: Handle old API format (pre-2024)
-    if "results" in res and "data" in res["results"]:
-        return res["results"]["data"][0][0]
+    # --- RESULT EXTRACTION LOGIC ---
 
-    raise RuntimeError(f"Unknown SQL result format: {res}")
+    # Case 1: result embedded in status response (your workspace)
+    if "result" in s and "data_array" in s["result"]:
+        return s["result"]["data_array"][0][0]
+
+    # Case 2: result available via "statement" object
+    if "response" in s and "result" in s["response"]:
+        return s["response"]["result"]["data_array"][0][0]
+
+    # Case 3: legacy API response contains "results"
+    if "results" in s and "data" in s["results"]:
+        return s["results"]["data"][0][0]
+
+    # No known formats found
+    raise RuntimeError(f"Unknown SQL result format: {s}")
 
 
 # ------------------------------------------
