@@ -15,7 +15,7 @@ variables:
   dev_flag:
     default: true
   job_prefix:
-    default: ""
+    default: "[dev amirout] "
 
 scripts:
   validate:
@@ -31,9 +31,6 @@ targets:
     default: true
     workspace:
       host: https://adb-46100794284318.18.azuredatabricks.net
-    variables:
-      job_prefix:
-        default: "[dev amirout] "
 
   test:
     mode: production
