@@ -1,7 +1,7 @@
 resources:
   jobs:
-    existing_pipeline:
-      name: existing_pipeline
+    existing_job:
+      name: existing_job
       tasks:
         - task_key: existing_task
           notebook_task:
