@@ -120,21 +120,6 @@ You'll also want to set up local Python environments for Databricks Connect and 
    deactivate
    ```
 
-4. **Create and activate the local PySpark environment**
-   ```bash
-   python3.11 -m venv .venv_pyspark
-   source .venv_pyspark/bin/activate
-   ```
-5. **Install PySpark dependencies**
-   ```bash
-   pip install -r requirements-pyspark.txt
-   ```
-6. **Verify installation**
-   ```bash
-   pip list
-   deactivate
-   ```
-
 #### Windows
 
 1. **Create and activate the Databricks Connect environment (using Python 3.11)**
@@ -153,22 +138,10 @@ You'll also want to set up local Python environments for Databricks Connect and 
    deactivate
    ```
 
-4. **Create and activate the local PySpark environment**
-   ```powershell
-   python -m venv .venv_pyspark
-   .\.venv_pyspark\Scripts\Activate.ps1
-   ```
-5. **Install PySpark dependencies**
-   ```powershell
-   pip install -r requirements-pyspark.txt
-   ```
-6. **Verify installation**
-   ```powershell
-   pip list
-   deactivate
-   ```
-
 ---
+
+You will also need to update the `databricks.yml` configuration file with your Workspace URLs and Service Principal details.
+
 ### Databricks CLI, Set-Up and Bundle Commands
 
 1. Install the Databricks CLI
@@ -179,6 +152,15 @@ You'll also want to set up local Python environments for Databricks Connect and 
    ```bash
    sudo curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sudo sh
    ```
+
+2. Install Git
+
+
+   You need Git to clone the repository or reference it during bundle initialization.
+   
+    ```bash
+    Install Git: https://git-scm.com/downloads
+    ```
 
 2. Authenticate to your Databricks workspace, if you have not done so already:
     ```bash
@@ -217,28 +199,4 @@ You'll also want to set up local Python environments for Databricks Connect and 
 
 7. For documentation on the Databricks asset bundles format used
    for this project, and for CI/CD configuration, see https://docs.databricks.com/dev-tools/bundles/index.html.
-
-
-
-
-   
-
-## Getting started
-
-1. Initialize a new project using the template:
-
-    ```bash
-    databricks bundle init https://github.com/amiya-ps-559/dab_project.git
-    ```
-
-    When initializing your project, you'll be prompted to answer several questions. These configurations will be used to customize your project:
-
-    | Parameter | Description | Example |
-    |-----------|-------------|---------------------|
-    | `project_name` | Name of the project (usually the same as the repository name) | `dab-project` |
-    | `author` | Name of the author | `Amiya Rout` |
-    | `email` | Email address of the author | `amiya.rout@publicissapient.com` |
-    | `project_description` | Brief description of the project | `This project is generated using our own Asset Bundle Templates.` |
-    
-You will also need to update the `databricks.yml` configuration file with your Workspace URLs and Service Principal details.
 
