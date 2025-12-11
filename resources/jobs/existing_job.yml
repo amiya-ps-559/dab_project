@@ -1,0 +1,12 @@
+resources:
+  jobs:
+    existing_job:
+      name: existing_job
+      tasks:
+        - task_key: existing_task
+          notebook_task:
+            notebook_path: ../../etl/notebooks/existing_nb.ipynb
+            source: WORKSPACE
+      queue:
+        enabled: true
+      performance_target: PERFORMANCE_OPTIMIZED
